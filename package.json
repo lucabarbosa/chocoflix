@@ -5,5 +5,8 @@
   "main": "index.js",
   "repository": "https://github.com/lucabarbosa/chocoflix.git",
   "author": "Lucas Barbosa <barbosa.lucash@gmail.com> (https://www.github.com/lucabarbosa)",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
 }
