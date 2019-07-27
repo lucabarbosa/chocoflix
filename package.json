@@ -1,0 +1,9 @@
+{
+  "name": "chocoflix",
+  "version": "1.0.0",
+  "description": "Media Streaming like Netflix in a intranet.",
+  "main": "index.js",
+  "repository": "https://github.com/lucabarbosa/chocoflix.git",
+  "author": "Lucas Barbosa <barbosa.lucash@gmail.com> (https://www.github.com/lucabarbosa)",
+  "license": "MIT"
+}
