@@ -7,7 +7,9 @@
   "author": "Lucas Barbosa <barbosa.lucash@gmail.com> (https://www.github.com/lucabarbosa)",
   "license": "MIT",
   "scripts": {
-    "start": "babel-node ./src/index.js"
+    "start": "babel-node ./src/index.js",
+    "test": "mocha tests/**/*.spec.js --require @babel/register",
+    "test:tdd": "yarn test --watch"
   },
   "dependencies": {
     "express": "^4.17.1"
@@ -17,6 +19,7 @@
     "@babel/node": "^7.5.5",
     "@babel/plugin-proposal-class-properties": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
+    "@babel/register": "^7.5.5",
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
     "eslint": "^4.19.1",
