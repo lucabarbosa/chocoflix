@@ -1,6 +1,10 @@
 import mongoose, { Schema } from 'mongoose';
 import Media from '../media/media.model';
 
+const Season = new Schema({
+  episodes: [Media]
+});
+
 const schema = new Schema({
   title: {
     type: String,
@@ -12,7 +16,7 @@ const schema = new Schema({
       ref: 'Category'
     }
   ],
-  seasons: [[Media]]
+  seasons: [Season]
 });
 
 const Serie = mongoose.models.Serie || mongoose.model('Serie', schema, 'media');
