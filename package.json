@@ -2,18 +2,19 @@
   "name": "chocoflix",
   "version": "1.0.0",
   "description": "Media Streaming like Netflix in a intranet.",
-  "main": "index.js",
+  "main": "./src/server.js",
   "repository": "https://github.com/lucabarbosa/chocoflix.git",
   "author": "Lucas Barbosa <barbosa.lucash@gmail.com> (https://www.github.com/lucabarbosa)",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon --exec babel-node ./src/index.js",
-    "start": "babel-node ./src/index.js",
+    "dev": "nodemon --exec babel-node ./src/server.js",
+    "start": "babel-node ./src/server.js",
     "test": "mocha tests/**/*.spec.js --require @babel/register",
     "test:tdd": "yarn test --watch"
   },
   "dependencies": {
     "bcrypt": "^3.0.6",
+    "body-parser": "^1.19.0",
     "express": "^4.17.1",
     "mongoose": "^5.6.7"
   },
