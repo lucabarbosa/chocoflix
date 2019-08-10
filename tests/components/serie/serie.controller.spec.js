@@ -8,7 +8,7 @@ import { it } from 'mocha';
 
 chai.use(sinonChai);
 
-describe.only('Serie: Controller', () => {
+describe('Serie: Controller', () => {
   const req = {
     body: {
       title: 'Brooklyn 99',
