@@ -1,11 +1,6 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
-const schema = new mongoose.Schema({
-  type: {
-    type: String,
-    enum: ['movie', 'serie'],
-    default: 'movie'
-  },
+const Media = new Schema({
   title: {
     type: String,
     required: true
@@ -22,13 +17,7 @@ const schema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  categories: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category'
-    }
-  ],
-  poster: [
+  posters: [
     {
       type: String
     }
@@ -42,10 +31,7 @@ const schema = new mongoose.Schema({
     {
       type: String
     }
-  ],
-  specs: {}
+  ]
 });
-
-const Media = mongoose.models.Media || mongoose.model('Media', schema);
 
 export default Media;
