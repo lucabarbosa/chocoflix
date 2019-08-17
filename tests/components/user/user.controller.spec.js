@@ -101,11 +101,20 @@ describe('User: Controller', () => {
     });
 
     it('should return created user object', () => {
-      expectedResult = req.body;
-      findMock.data = expectedResult;
+      expectedResult = { ...req.body };
+      delete expectedResult.password;
 
       userFindOneStub.resolves();
-      userCreateStub.returns(findMock);
+      userCreateStub.resolves({
+        data: {
+          ...req.body
+        },
+        toObject: function() {
+          const data = { ...this.data };
+          delete data.password;
+          return data;
+        }
+      });
 
       return UserController.create(req, res, next).then(() => {
         expect(userCreateStub).to.have.been.calledWith(req.body);
@@ -115,14 +124,8 @@ describe('User: Controller', () => {
     });
 
     it('should call next when an error occurs', () => {
-      expectedResult = req.body;
-
-      findMock.select = function(params) {
-        return Promise.reject(error);
-      };
-
       userFindOneStub.resolves();
-      userCreateStub.returns(findMock);
+      userCreateStub.rejects(error);
 
       return UserController.create(req, res, next).then(() => {
         expect(next).to.have.been.calledWith(error);
@@ -143,7 +146,7 @@ describe('User: Controller', () => {
 
     it('should return an array of users or empty array', () => {
       expectedResult = [{}, {}];
-      findMock.data = expectedResult;
+      findMock.data = [...expectedResult];
       model.returns(findMock);
 
       return UserController.index(req, res, next).then(() => {
@@ -179,8 +182,8 @@ describe('User: Controller', () => {
     });
 
     it('should return a user object', () => {
-      expectedResult = req.body;
-      findMock.data = expectedResult;
+      expectedResult = { ...req.body };
+      findMock.data = [expectedResult];
       model.returns(findMock);
 
       return UserController.get(req, res, next).then(() => {
@@ -191,7 +194,7 @@ describe('User: Controller', () => {
     });
 
     it('should call next with Not Found Error when user doesnt exists', () => {
-      findMock.data = null;
+      findMock.data = [];
       model.returns(findMock);
 
       return UserController.get(req, res, next).then(() => {

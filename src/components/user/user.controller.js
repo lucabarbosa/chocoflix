@@ -18,9 +18,13 @@ UserController.create = (req, res, next) => {
     })
     .then(hash => {
       payload.password = hash;
-      return User.create(payload).select('-password');
+      return User.create(payload);
     })
-    .then(user => res.status(201).json(user))
+    .then(user => {
+      const newUser = user.toObject();
+      delete newUser.password;
+      return res.status(201).json(newUser);
+    })
     .catch(err => next(err));
 };
 
@@ -37,7 +41,7 @@ UserController.get = (req, res, next) => {
   return User.find({ email })
     .select('-password')
     .then(user => {
-      if (user) return res.status(200).json(user);
+      if (user.length) return res.status(200).json(user[0]);
       throw {
         name: 'NotFoundError',
         message: 'User Not Found.'
@@ -101,7 +105,7 @@ UserController.destroy = (req, res, next) => {
   return User.findOne({ email })
     .then(user => {
       if (user) {
-        return bcrypt.compare(password, user.params);
+        return bcrypt.compare(password, user.password);
       }
 
       throw {
@@ -113,7 +117,6 @@ UserController.destroy = (req, res, next) => {
       if (isCorrectPassword) {
         return User.findOneAndDelete({ email });
       }
-
       throw {
         name: 'UnauthorizedError',
         message: 'Invalid Password.'
