@@ -9,6 +9,7 @@ import UserController from '../../../src/components/user/user.controller';
 chai.use(sinonChai);
 
 describe('User: Controller', () => {
+  // Express Functions
   const req = {
     body: {
       email: 'teste@gmail.com',
@@ -18,89 +19,113 @@ describe('User: Controller', () => {
       email: 'teste@gmail.com'
     }
   };
-
   const res = {};
+  const next = sinon.spy();
 
+  // Errors
   const error = new Error({ error: 'error message' });
 
+  const NotFoundError = {
+    name: 'NotFoundError',
+    message: 'User Not Found.'
+  };
+
+  const UnauthorizedError = {
+    name: 'UnauthorizedError',
+    message: 'Invalid Password.'
+  };
+
+  // Results
   let expectedResult;
 
-  beforeEach(() => {
+  // Mocks
+  let findMock;
+
+  before(() => {
     res.json = sinon.spy();
     res.status = sinon.stub().returns(res);
   });
 
+  beforeEach(() => {
+    findMock = {
+      data: {},
+      select: function(params) {
+        return Promise.resolve(this.data);
+      }
+    };
+  });
+
   describe('create() user', () => {
-    let model;
     let bcryptStub;
+    let userCreateStub;
+    let userFindOneStub;
 
     beforeEach(() => {
+      expectedResult = {};
       bcryptStub = sinon.stub(bcrypt, 'hash').resolves('bla');
+      userCreateStub = sinon.stub(User, 'create');
+      userFindOneStub = sinon.stub(User, 'findOne').resolves(expectedResult);
     });
 
     afterEach(() => {
       bcryptStub.restore();
-      model.restore();
+      userCreateStub.restore();
+      userFindOneStub.restore();
     });
 
     it('should check if user exists', () => {
       const { email } = req.body;
 
-      expectedResult = {};
-
-      model = sinon.stub(User, 'findOne').resolves(expectedResult);
-
-      return UserController.create(req, res).then(() => {
-        expect(model).to.have.been.calledWith({ email });
+      return UserController.create(req, res, next).then(() => {
+        expect(userFindOneStub).to.have.been.calledWith({ email });
       });
     });
 
-    it('should return error is user exists', () => {
+    it('should call next with error if user exists', () => {
       const { email } = req.body;
 
-      expectedResult = {};
-
-      model = sinon.stub(User, 'findOne').resolves(expectedResult);
-
-      return UserController.create(req, res).then(() => {
-        expect(model).to.have.been.calledWith({ email });
-        expect(res.status).to.have.been.calledWith(400);
+      return UserController.create(req, res, next).then(() => {
+        expect(userFindOneStub).to.have.been.calledWith({ email });
+        expect(next).to.have.been.calledWith('This email is already taken.');
       });
     });
 
     it('should encrypt user password', () => {
       const { password } = req.body;
 
-      model = sinon.stub(User, 'findOne').resolves();
+      userFindOneStub.resolves();
 
-      return UserController.create(req, res).then(() => {
+      return UserController.create(req, res, next).then(() => {
         expect(bcryptStub).to.have.been.calledWith(password);
       });
     });
 
     it('should return created user object', () => {
       expectedResult = req.body;
+      findMock.data = expectedResult;
 
-      const findOne = sinon.stub(User, 'findOne').resolves();
-      model = sinon.stub(User, 'create').resolves(expectedResult);
+      userFindOneStub.resolves();
+      userCreateStub.returns(findMock);
 
-      return UserController.create(req, res).then(() => {
-        expect(model).to.have.been.calledWith(req.body);
+      return UserController.create(req, res, next).then(() => {
+        expect(userCreateStub).to.have.been.calledWith(req.body);
         expect(res.json).to.have.been.calledWith(expectedResult);
         expect(res.status).to.have.been.calledWith(201);
-        findOne.restore();
       });
     });
 
-    it('should return 400 when an error occurs', () => {
-      const findOne = sinon.stub(User, 'findOne').resolves();
-      model = sinon.stub(User, 'create').rejects(error);
+    it('should call next when an error occurs', () => {
+      expectedResult = req.body;
 
-      return UserController.create(req, res).then(() => {
-        expect(model).to.have.been.calledWith(req.body);
-        expect(res.json).to.have.been.calledWith(error);
-        expect(res.status).to.have.been.calledWith(400);
-        findOne.restore();
+      findMock.select = function(params) {
+        return Promise.reject(error);
+      };
+
+      userFindOneStub.resolves();
+      userCreateStub.returns(findMock);
+
+      return UserController.create(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -118,22 +143,26 @@ describe('User: Controller', () => {
 
     it('should return an array of users or empty array', () => {
       expectedResult = [{}, {}];
-      model = model.resolves(expectedResult);
+      findMock.data = expectedResult;
+      model.returns(findMock);
 
-      return UserController.index(req, res).then(() => {
+      return UserController.index(req, res, next).then(() => {
         expect(model).to.have.been.called;
         expect(res.status).to.have.been.calledWith(200);
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
-      model = model.rejects(error);
+    it('should call next when an error occurs', () => {
+      expectedResult = [{}, {}];
+      findMock.select = function(params) {
+        return Promise.reject(error);
+      };
+      model.returns(findMock);
 
-      return UserController.index(req, res).then(() => {
+      return UserController.index(req, res, next).then(() => {
         expect(model).to.have.been.called;
-        expect(res.status).to.have.been.calledWith(400);
-        expect(res.json).to.have.been.calledWith(error);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -151,31 +180,34 @@ describe('User: Controller', () => {
 
     it('should return a user object', () => {
       expectedResult = req.body;
-      model = model.resolves(expectedResult);
+      findMock.data = expectedResult;
+      model.returns(findMock);
 
-      return UserController.get(req, res).then(() => {
+      return UserController.get(req, res, next).then(() => {
         expect(model).to.have.been.called;
         expect(res.status).to.have.been.calledWith(200);
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
-    it('should return 404 when user doesnt exists', () => {
-      model = model.resolves();
+    it('should call next with Not Found Error when user doesnt exists', () => {
+      findMock.data = null;
+      model.returns(findMock);
 
-      return UserController.get(req, res).then(() => {
-        expect(model).to.have.been.called;
-        expect(res.status).to.have.been.calledWith(404);
+      return UserController.get(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(NotFoundError);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
-      model = model.rejects(error);
+    it('should call next with error when an error occurs', () => {
+      findMock.select = function(params) {
+        return Promise.reject(error);
+      };
 
-      return UserController.get(req, res).then(() => {
-        expect(model).to.have.been.called;
-        expect(res.status).to.have.been.calledWith(400);
-        expect(res.json).to.have.been.calledWith(error);
+      model.returns(findMock);
+
+      return UserController.get(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -201,24 +233,24 @@ describe('User: Controller', () => {
 
       model.resolves(req.body);
 
-      return UserController.update(req, res).then(() => {
+      return UserController.update(req, res, next).then(() => {
         expect(bcryptStub).to.have.been.calledWith(password);
       });
     });
 
-    it('should return 401 when password is incorrect', () => {
+    it('should call next with Unauthorized Error when password is incorrect', () => {
       bcryptStub.resolves(false);
 
-      return UserController.update(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(401);
+      return UserController.update(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(UnauthorizedError);
       });
     });
 
-    it('should return 404 when user doesnt exists', () => {
+    it('should call next with Not Found Error when user doesnt exists', () => {
       findStub.resolves();
 
-      return UserController.update(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(404);
+      return UserController.update(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(NotFoundError);
       });
     });
 
@@ -233,12 +265,14 @@ describe('User: Controller', () => {
         }
       };
 
-      expectedResult = { ...req.body };
-      expectedResult.email = req.params.email;
+      expectedResult = { ...req2.body };
+      expectedResult.email = req2.params.email;
 
-      model.resolves(expectedResult);
+      findMock.data = { ...expectedResult };
 
-      return UserController.update(req2, res).then(() => {
+      model.returns(findMock);
+
+      return UserController.update(req2, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
@@ -257,9 +291,11 @@ describe('User: Controller', () => {
 
       expectedResult = { email: 'teste@gmail.com', password: 'lucas' };
 
-      model.resolves(expectedResult);
+      findMock.data = { ...expectedResult };
 
-      return UserController.update(req2, res).then(() => {
+      model.returns(findMock);
+
+      return UserController.update(req2, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
@@ -267,11 +303,13 @@ describe('User: Controller', () => {
     it('should return a updated user object', () => {
       const { email } = req.params;
 
-      expectedResult = req.body;
+      expectedResult = { ...req.body };
 
-      model.resolves(expectedResult);
+      findMock.data = { ...expectedResult };
 
-      return UserController.update(req, res).then(() => {
+      model.returns(findMock);
+
+      return UserController.update(req, res, next).then(() => {
         expect(model).to.have.been.calledWith({ email }, req.body, {
           new: true
         });
@@ -280,12 +318,15 @@ describe('User: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
-      model.rejects(error);
+    it('should call next with error when an error occurs', () => {
+      findMock.select = function(params) {
+        return Promise.reject(error);
+      };
 
-      return UserController.update(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
-        expect(res.json).to.have.been.calledWith(error);
+      model.returns(findMock);
+
+      return UserController.update(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -307,19 +348,19 @@ describe('User: Controller', () => {
       model.restore();
     });
 
-    it('should return 401 when password is incorrect', () => {
+    it('should call next with Unauthorized Error when password is incorrect', () => {
       bcryptStub = bcryptStub.resolves(false);
 
-      return UserController.destroy(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(401);
+      return UserController.destroy(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(UnauthorizedError);
       });
     });
 
-    it('should return 404 when user doesnt exists', () => {
+    it('should call next with Not Found Error when user doesnt exists', () => {
       findStub = findStub.resolves();
 
-      return UserController.destroy(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(404);
+      return UserController.destroy(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(NotFoundError);
       });
     });
 
@@ -332,22 +373,19 @@ describe('User: Controller', () => {
 
       model = model.resolves({});
 
-      return UserController.destroy(req, res).then(() => {
+      return UserController.destroy(req, res, next).then(() => {
         expect(model).to.have.been.calledWith({ email });
         expect(res.status).to.have.been.calledWith(200);
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
-    it('shoud return 400 when an error occurs', () => {
+    it('shoud call next with error when an error occurs', () => {
       model = model.rejects(error);
 
-      return UserController.destroy(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
-        expect(res.json).to.have.been.calledWith(error);
+      return UserController.destroy(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
-
-  describe('updatePassword() user', () => {});
 });

@@ -5,94 +5,126 @@ const SALT_ROUNDS = 10;
 
 const UserController = {};
 
-UserController.create = (req, res) => {
+UserController.create = (req, res, next) => {
   const payload = req.body;
   const { email } = payload;
 
   return User.findOne({ email })
     .then(user => {
       if (user) {
-        throw new Error('This email is already taken.');
-      } else {
-        return bcrypt.hash(payload.password, SALT_ROUNDS);
+        throw 'This email is already taken.';
       }
+      return bcrypt.hash(payload.password, SALT_ROUNDS);
     })
     .then(hash => {
       payload.password = hash;
-      return User.create(payload);
+      return User.create(payload).select('-password');
     })
     .then(user => res.status(201).json(user))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-UserController.index = (req, res) => {
+UserController.index = (req, res, next) => {
   return User.find({})
+    .select('-password')
     .then(users => res.status(200).json(users))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-UserController.get = (req, res) => {
+UserController.get = (req, res, next) => {
   const { email } = req.params;
 
   return User.find({ email })
+    .select('-password')
     .then(user => {
       if (user) return res.status(200).json(user);
-      return res.status(404);
+      throw {
+        name: 'NotFoundError',
+        message: 'User Not Found.'
+      };
     })
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-UserController.update = (req, res) => {
+UserController.update = (req, res, next) => {
   const payload = req.body;
   const { password } = req.body;
   const { email } = req.params;
+
   payload.email = email;
 
   return User.findOne({ email })
     .then(user => {
-      if (!user) return res.status(404);
-      return bcrypt.compare(password, user.password);
+      if (user) {
+        return bcrypt.compare(password, user.password);
+      }
+
+      throw {
+        name: 'NotFoundError',
+        message: 'User Not Found.'
+      };
     })
     .then(isCorrectPassword => {
       if (isCorrectPassword) {
-        if (payload.newPassword)
+        delete payload.password;
+
+        if (payload.newPassword) {
           return bcrypt.hash(payload.newPassword, SALT_ROUNDS);
+        }
+
         return false;
       }
-      return res.status(401);
+
+      throw {
+        name: 'UnauthorizedError',
+        message: 'Invalid Password.'
+      };
     })
     .then(hash => {
       if (hash) {
         payload.password = hash;
         delete payload.newPassword;
-      } else {
-        delete payload.password;
       }
-      return User.findOneAndUpdate({ email }, payload, { new: true });
+
+      return User.findOneAndUpdate({ email }, payload, { new: true }).select(
+        '-password'
+      );
     })
     .then(user => res.status(200).json(user))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-UserController.destroy = (req, res) => {
+UserController.destroy = (req, res, next) => {
   const { password } = req.body;
   const { email } = req.params;
 
   return User.findOne({ email })
     .then(user => {
-      if (!user) return res.status(404);
-      return bcrypt.compare(password, user.params);
+      if (user) {
+        return bcrypt.compare(password, user.params);
+      }
+
+      throw {
+        name: 'NotFoundError',
+        message: 'User Not Found.'
+      };
     })
     .then(isCorrectPassword => {
-      if (isCorrectPassword) return User.findOneAndDelete({ email });
-      return res.status(401);
+      if (isCorrectPassword) {
+        return User.findOneAndDelete({ email });
+      }
+
+      throw {
+        name: 'UnauthorizedError',
+        message: 'Invalid Password.'
+      };
     })
     .then(user =>
       res.status(200).json({
         message: 'User deleted successfully!'
       })
     )
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
 export default UserController;
