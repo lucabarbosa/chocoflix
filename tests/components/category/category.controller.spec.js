@@ -1,12 +1,16 @@
 import chai, { expect } from 'chai';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
+
 import Category from '../../../src/components/category/category.model';
 import CategoryController from '../../../src/components/category/category.controller';
 
+import ApiError from '../../../src/helpers/ApiError';
+
 chai.use(sinonChai);
 
-describe('Category: Controller', () => {
+describe.only('Category: Controller', () => {
+  // Express Params
   const req = {
     body: {
       name: 'Ação'
@@ -16,17 +20,28 @@ describe('Category: Controller', () => {
     }
   };
 
-  const error = new Error({ error: 'error message' });
   const res = {};
+  let next;
+
+  // Errors
+  const error = new ApiError();
+  const notFoundError = new ApiError(404, 'Category');
+
+  // Results
   let expectedResult;
+
+  // Mocks
+  beforeEach(() => {
+    res.json = sinon.spy();
+    res.status = sinon.stub().returns(res);
+    next = sinon.spy();
+  });
 
   describe('create() category', () => {
     let model;
 
     beforeEach(() => {
       model = sinon.stub(Category, 'create');
-      res.json = sinon.spy();
-      res.status = sinon.stub().returns(res);
     });
 
     afterEach(() => {
@@ -36,22 +51,20 @@ describe('Category: Controller', () => {
     it('should return created category object', () => {
       expectedResult = req.body;
 
-      model = model.resolves(expectedResult);
+      model.resolves(expectedResult);
 
-      return CategoryController.create(req, res).then(() => {
+      return CategoryController.create(req, res, next).then(() => {
         expect(model).to.have.been.calledWith(req.body);
         expect(res.json).to.have.been.calledWith(expectedResult);
         expect(res.status).to.have.been.calledWith(201);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
-      model = model.rejects(error);
+    it('should call next with error when an error occurs', () => {
+      model.rejects(error);
 
-      return CategoryController.create(req, res).then(() => {
-        expect(model).to.have.been.calledWith(req.body);
-        expect(res.json).to.have.been.calledWith(error);
-        expect(res.status).to.have.been.calledWith(400);
+      return CategoryController.create(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -61,8 +74,6 @@ describe('Category: Controller', () => {
 
     beforeEach(() => {
       model = sinon.stub(Category, 'find');
-      res.json = sinon.spy();
-      res.status = sinon.stub().returns(res);
     });
 
     afterEach(() => {
@@ -79,22 +90,20 @@ describe('Category: Controller', () => {
         }
       ];
 
-      model = model.resolves(expectedResult);
+      model.resolves(expectedResult);
 
-      return CategoryController.index(req, res).then(() => {
+      return CategoryController.index(req, res, next).then(() => {
         expect(model).to.have.been.calledWith({});
         expect(res.json).to.have.been.calledWith(expectedResult);
         expect(res.status).to.have.been.calledWith(200);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
-      model = model.rejects(error);
+    it('should call next with error when and error occurs', () => {
+      model.rejects(error);
 
-      return CategoryController.index(req, res).then(() => {
-        expect(model).to.have.been.calledWith({});
-        expect(res.json).to.have.been.calledWith(error);
-        expect(res.status).to.have.been.calledWith(400);
+      return CategoryController.index(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -104,8 +113,6 @@ describe('Category: Controller', () => {
 
     beforeEach(() => {
       model = sinon.stub(Category, 'findById');
-      res.json = sinon.spy();
-      res.status = sinon.stub().returns(res);
     });
 
     afterEach(() => {
@@ -117,9 +124,9 @@ describe('Category: Controller', () => {
         name: 'Ação'
       };
 
-      model = model.resolves(expectedResult);
+      model.resolves(expectedResult);
 
-      return CategoryController.get(req, res).then(() => {
+      return CategoryController.get(req, res, next).then(() => {
         expect(model).to.have.been.calledWith(req.params.id);
         expect(res.json).to.have.been.calledWith(expectedResult);
         expect(res.status).to.have.been.calledWith(200);
@@ -127,21 +134,24 @@ describe('Category: Controller', () => {
     });
 
     it('should return 404 if category doesnt exists', () => {
-      model = model.resolves();
+      model.resolves();
 
-      return CategoryController.get(req, res).then(() => {
-        expect(model).to.have.been.calledWith(req.params.id);
-        expect(res.status).to.have.been.calledWith(404);
+      return CategoryController.get(req, res, next).then(() => {
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(notFoundError.code);
+        expect(calledError.message).to.be.equal(notFoundError.message);
       });
     });
 
     it('should return 400 if an error occurs', () => {
-      model = model.rejects(error);
+      model.rejects(error);
 
-      return CategoryController.get(req, res).then(() => {
-        expect(model).to.have.been.calledWith(req.params.id);
-        expect(res.json).to.have.been.calledWith(error);
-        expect(res.status).to.have.been.calledWith(400);
+      return CategoryController.get(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -151,8 +161,6 @@ describe('Category: Controller', () => {
 
     beforeEach(() => {
       model = sinon.stub(Category, 'findByIdAndUpdate');
-      res.json = sinon.spy();
-      res.status = sinon.stub().returns(res);
     });
 
     afterEach(() => {
@@ -162,9 +170,9 @@ describe('Category: Controller', () => {
     it('should return updated category object', () => {
       expectedResult = req.body;
 
-      model = model.resolves(expectedResult);
+      model.resolves(expectedResult);
 
-      return CategoryController.update(req, res).then(() => {
+      return CategoryController.update(req, res, next).then(() => {
         expect(model).to.have.been.calledWith(req.params.id);
         expect(res.json).to.have.been.calledWith(expectedResult);
         expect(res.status).to.have.been.calledWith(201);
@@ -172,21 +180,24 @@ describe('Category: Controller', () => {
     });
 
     it('should return 404 if category doesnt exists', () => {
-      model = model.resolves();
+      model.resolves();
 
-      return CategoryController.update(req, res).then(() => {
-        expect(model).to.have.been.calledWith(req.params.id);
-        expect(res.status).to.have.been.calledWith(404);
+      return CategoryController.update(req, res, next).then(() => {
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(notFoundError.code);
+        expect(calledError.message).to.be.equal(notFoundError.message);
       });
     });
 
     it('should return 400 if an error occurs', () => {
-      model = model.rejects(error);
+      model.rejects(error);
 
-      return CategoryController.update(req, res).then(() => {
-        expect(model).to.have.been.calledWith(req.params.id);
-        expect(res.json).to.have.been.calledWith(error);
-        expect(res.status).to.have.been.calledWith(400);
+      return CategoryController.update(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -196,8 +207,6 @@ describe('Category: Controller', () => {
 
     beforeEach(() => {
       model = sinon.stub(Category, 'findByIdAndRemove');
-      res.json = sinon.spy();
-      res.status = sinon.stub().returns(res);
     });
 
     afterEach(() => {
@@ -209,9 +218,9 @@ describe('Category: Controller', () => {
         message: 'Category deleted successfully!'
       };
 
-      model = model.resolves({});
+      model.resolves({});
 
-      return CategoryController.destroy(req, res).then(() => {
+      return CategoryController.destroy(req, res, next).then(() => {
         expect(model).to.have.been.calledWith(req.params.id);
         expect(res.json).to.have.been.calledWith(expectedResult);
         expect(res.status).to.have.been.calledWith(201);
@@ -219,21 +228,24 @@ describe('Category: Controller', () => {
     });
 
     it('should return 404 if category doesnt exists', () => {
-      model = model.resolves();
+      model.resolves();
 
-      return CategoryController.destroy(req, res).then(() => {
-        expect(model).to.have.been.calledWith(req.params.id);
-        expect(res.status).to.have.been.calledWith(404);
+      return CategoryController.destroy(req, res, next).then(() => {
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(notFoundError.code);
+        expect(calledError.message).to.be.equal(notFoundError.message);
       });
     });
 
     it('should return 400 if an error occurs', () => {
-      model = model.rejects(error);
+      model.rejects(error);
 
-      return CategoryController.destroy(req, res).then(() => {
-        expect(model).to.have.been.calledWith(req.params.id);
-        expect(res.json).to.have.been.calledWith(error);
-        expect(res.status).to.have.been.calledWith(400);
+      return CategoryController.destroy(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
