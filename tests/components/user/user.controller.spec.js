@@ -6,6 +6,8 @@ import bcrypt from 'bcrypt';
 import User from '../../../src/components/user/user.model';
 import UserController from '../../../src/components/user/user.controller';
 
+import ApiError from '../../../src/helpers/ApiError';
+
 chai.use(sinonChai);
 
 describe('User: Controller', () => {
@@ -20,20 +22,12 @@ describe('User: Controller', () => {
     }
   };
   const res = {};
-  const next = sinon.spy();
+  let next;
 
   // Errors
-  const error = new Error({ error: 'error message' });
-
-  const NotFoundError = {
-    name: 'NotFoundError',
-    message: 'User Not Found.'
-  };
-
-  const UnauthorizedError = {
-    name: 'UnauthorizedError',
-    message: 'Invalid Password.'
-  };
+  let error = new ApiError();
+  const NotFoundError = new ApiError(404, 'User');
+  const UnauthorizedError = new ApiError(401, 'User', 'Invalid Password.');
 
   // Results
   let expectedResult;
@@ -47,6 +41,8 @@ describe('User: Controller', () => {
   });
 
   beforeEach(() => {
+    next = sinon.spy();
+
     findMock = {
       data: {},
       select: function(params) {
@@ -85,8 +81,20 @@ describe('User: Controller', () => {
       const { email } = req.body;
 
       return UserController.create(req, res, next).then(() => {
+        const emailError = new ApiError(
+          400,
+          'Email',
+          'This email is already taken.'
+        );
+
         expect(userFindOneStub).to.have.been.calledWith({ email });
-        expect(next).to.have.been.calledWith('This email is already taken.');
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(emailError.code);
+        expect(calledError.message).to.be.equal(emailError.message);
       });
     });
 
@@ -184,6 +192,7 @@ describe('User: Controller', () => {
     it('should return a user object', () => {
       expectedResult = { ...req.body };
       findMock.data = [expectedResult];
+
       model.returns(findMock);
 
       return UserController.get(req, res, next).then(() => {
@@ -195,10 +204,17 @@ describe('User: Controller', () => {
 
     it('should call next with Not Found Error when user doesnt exists', () => {
       findMock.data = [];
+
       model.returns(findMock);
 
       return UserController.get(req, res, next).then(() => {
-        expect(next).to.have.been.calledWith(NotFoundError);
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(NotFoundError.code);
+        expect(calledError.message).to.be.equal(NotFoundError.message);
       });
     });
 
@@ -245,7 +261,13 @@ describe('User: Controller', () => {
       bcryptStub.resolves(false);
 
       return UserController.update(req, res, next).then(() => {
-        expect(next).to.have.been.calledWith(UnauthorizedError);
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(UnauthorizedError.code);
+        expect(calledError.message).to.be.equal(UnauthorizedError.message);
       });
     });
 
@@ -253,7 +275,13 @@ describe('User: Controller', () => {
       findStub.resolves();
 
       return UserController.update(req, res, next).then(() => {
-        expect(next).to.have.been.calledWith(NotFoundError);
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(NotFoundError.code);
+        expect(calledError.message).to.be.equal(NotFoundError.message);
       });
     });
 
@@ -329,7 +357,13 @@ describe('User: Controller', () => {
       model.returns(findMock);
 
       return UserController.update(req, res, next).then(() => {
-        expect(next).to.have.been.calledWith(error);
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(error.code);
+        expect(calledError.message).to.be.equal(error.message);
       });
     });
   });
@@ -355,15 +389,27 @@ describe('User: Controller', () => {
       bcryptStub = bcryptStub.resolves(false);
 
       return UserController.destroy(req, res, next).then(() => {
-        expect(next).to.have.been.calledWith(UnauthorizedError);
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(UnauthorizedError.code);
+        expect(calledError.message).to.be.equal(UnauthorizedError.message);
       });
     });
 
     it('should call next with Not Found Error when user doesnt exists', () => {
-      findStub = findStub.resolves();
+      findStub.resolves();
 
       return UserController.destroy(req, res, next).then(() => {
-        expect(next).to.have.been.calledWith(NotFoundError);
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(NotFoundError.code);
+        expect(calledError.message).to.be.equal(NotFoundError.message);
       });
     });
 

@@ -1,5 +1,6 @@
 import User from './user.model';
 import bcrypt from 'bcrypt';
+import ApiError from '../../helpers/ApiError';
 
 const SALT_ROUNDS = 10;
 
@@ -12,7 +13,7 @@ UserController.create = (req, res, next) => {
   return User.findOne({ email })
     .then(user => {
       if (user) {
-        throw 'This email is already taken.';
+        throw new ApiError(400, 'Email', 'This email is already taken.');
       }
       return bcrypt.hash(payload.password, SALT_ROUNDS);
     })
@@ -42,10 +43,7 @@ UserController.get = (req, res, next) => {
     .select('-password')
     .then(user => {
       if (user.length) return res.status(200).json(user[0]);
-      throw {
-        name: 'NotFoundError',
-        message: 'User Not Found.'
-      };
+      throw new ApiError(404, 'User');
     })
     .catch(err => next(err));
 };
@@ -59,14 +57,8 @@ UserController.update = (req, res, next) => {
 
   return User.findOne({ email })
     .then(user => {
-      if (user) {
-        return bcrypt.compare(password, user.password);
-      }
-
-      throw {
-        name: 'NotFoundError',
-        message: 'User Not Found.'
-      };
+      if (user) return bcrypt.compare(password, user.password);
+      throw new ApiError(404, 'User');
     })
     .then(isCorrectPassword => {
       if (isCorrectPassword) {
@@ -79,10 +71,7 @@ UserController.update = (req, res, next) => {
         return false;
       }
 
-      throw {
-        name: 'UnauthorizedError',
-        message: 'Invalid Password.'
-      };
+      throw new ApiError(401, 'User', 'Invalid Password.');
     })
     .then(hash => {
       if (hash) {
@@ -108,19 +97,14 @@ UserController.destroy = (req, res, next) => {
         return bcrypt.compare(password, user.password);
       }
 
-      throw {
-        name: 'NotFoundError',
-        message: 'User Not Found.'
-      };
+      throw new ApiError(404, 'User');
     })
     .then(isCorrectPassword => {
       if (isCorrectPassword) {
         return User.findOneAndDelete({ email });
       }
-      throw {
-        name: 'UnauthorizedError',
-        message: 'Invalid Password.'
-      };
+
+      throw new ApiError(401, 'User', 'Invalid Password.');
     })
     .then(user =>
       res.status(200).json({
