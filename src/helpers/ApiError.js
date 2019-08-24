@@ -1,6 +1,7 @@
 export default class ApiError extends Error {
   constructor(code = 500, resource = 'Resource', message = '') {
     super();
+    this.name = 'ApiError';
     this.code = code;
     this.message = this.getMessage(code, resource, message);
   }
