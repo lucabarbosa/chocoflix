@@ -9,7 +9,7 @@ import ApiError from '../../../src/helpers/ApiError';
 
 chai.use(sinonChai);
 
-describe.only('Category: Controller', () => {
+describe('Category: Controller', () => {
   // Express Params
   const req = {
     body: {
@@ -175,7 +175,7 @@ describe.only('Category: Controller', () => {
       return CategoryController.update(req, res, next).then(() => {
         expect(model).to.have.been.calledWith(req.params.id);
         expect(res.json).to.have.been.calledWith(expectedResult);
-        expect(res.status).to.have.been.calledWith(201);
+        expect(res.status).to.have.been.calledWith(200);
       });
     });
 
@@ -223,7 +223,7 @@ describe.only('Category: Controller', () => {
       return CategoryController.destroy(req, res, next).then(() => {
         expect(model).to.have.been.calledWith(req.params.id);
         expect(res.json).to.have.been.calledWith(expectedResult);
-        expect(res.status).to.have.been.calledWith(201);
+        expect(res.status).to.have.been.calledWith(200);
       });
     });
 

@@ -31,9 +31,9 @@ CategoryController.update = (req, res, next) => {
   const { id } = req.params;
   const payload = req.body;
 
-  return Category.findByIdAndUpdate(id, payload)
+  return Category.findByIdAndUpdate(id, payload, { new: true })
     .then(category => {
-      if (category) return res.status(201).json(category);
+      if (category) return res.status(200).json(category);
       throw new ApiError(404, 'Category');
     })
     .catch(err => next(err));
@@ -44,7 +44,7 @@ CategoryController.destroy = (req, res, next) => {
   return Category.findByIdAndRemove(id)
     .then(category => {
       if (category) {
-        return res.status(201).json({
+        return res.status(200).json({
           message: 'Category deleted successfully!'
         });
       }
