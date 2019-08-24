@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 
 import errorHandler from '../../src/helpers/error-handler';
+import ApiError from '../../src/helpers/ApiError';
 
 chai.use(sinonChai);
 
@@ -18,97 +19,41 @@ describe('Error Handler', () => {
     res.json = sinon.spy();
   });
 
-  describe('Custom String Error', () => {
+  describe('ApiError instance', () => {
     before(() => {
-      error = 'error message';
+      error = new ApiError(400, 'User', 'User is invalid!');
     });
 
-    it('should return status 400', () => {
+    it('should call status with error.code ', () => {
+      errorHandler(error, req, res);
+      expect(res.status).to.have.been.calledWith(error.code);
+    });
+
+    it('should call json with error.message', () => {
+      errorHandler(error, req, res);
+      expect(res.json).to.have.been.calledWith({ message: error.message });
+    });
+  });
+
+  describe('Custom Error', () => {
+    before(() => {
+      error = new Error('An error occurred.');
+    });
+
+    it('should call status with default code', () => {
       errorHandler(error, req, res);
       expect(res.status).to.have.been.calledWith(400);
     });
 
-    it('should return correct error json', () => {
-      expectedResult.message = error;
+    it('should call json with error.message', () => {
       errorHandler(error, req, res);
-      expect(res.json).to.have.been.calledWith(expectedResult);
-    });
-  });
-
-  describe('Validation Error', () => {
-    before(() => {
-      error = {
-        name: 'ValidationError',
-        message: 'error message'
-      };
+      expect(res.json).to.have.been.calledWith({ message: error.message });
     });
 
-    it('should return status 400', () => {
+    it('should call json with default message if no message is passed', () => {
+      error = new Error();
       errorHandler(error, req, res);
-      expect(res.status).to.have.been.calledWith(400);
-    });
-
-    it('should return correct error json', () => {
-      expectedResult.message = error.message;
-      errorHandler(error, req, res);
-      expect(res.json).to.have.been.calledWith(expectedResult);
-    });
-  });
-
-  describe('Unauthorized Error', () => {
-    before(() => {
-      error = {
-        name: 'UnauthorizedError',
-        message: 'error message'
-      };
-    });
-
-    it('should return status 401', () => {
-      errorHandler(error, req, res);
-      expect(res.status).to.have.been.calledWith(401);
-    });
-
-    it('should return correct error json', () => {
-      expectedResult.message = 'Invalid Token.';
-      errorHandler(error, req, res);
-      expect(res.json).to.have.been.calledWith(expectedResult);
-    });
-  });
-
-  describe('Not Found Error', () => {
-    before(() => {
-      error = {
-        name: 'NotFoundError',
-        message: 'error message'
-      };
-    });
-
-    it('should return status 404', () => {
-      errorHandler(error, req, res);
-      expect(res.status).to.have.been.calledWith(404);
-    });
-
-    it('should return correct error json', () => {
-      expectedResult.message = 'Resource Not Found.';
-      errorHandler(error, req, res);
-      expect(res.json).to.have.been.calledWith(expectedResult);
-    });
-  });
-
-  describe('Server Error', () => {
-    before(() => {
-      error = {};
-    });
-
-    it('should return status 500', () => {
-      errorHandler(error, req, res);
-      expect(res.status).to.have.been.calledWith(500);
-    });
-
-    it('should return correct error json', () => {
-      expectedResult.message = 'Internal Server Error';
-      errorHandler(error, req, res);
-      expect(res.json).to.have.been.calledWith(expectedResult);
+      expect(res.json).to.have.been.calledWith({ message: 'Internal Error.' });
     });
   });
 });
