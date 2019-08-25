@@ -1,57 +1,58 @@
 import Movie from './movie.model';
+import ApiError from '../../helpers/ApiError';
 
 const MovieController = {};
 
-MovieController.create = (req, res) => {
+MovieController.create = (req, res, next) => {
   const payload = req.body;
 
   return Movie.create(payload)
     .then(movie => res.status(201).json(movie))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-MovieController.append = (req, res) => {
+MovieController.append = (req, res, next) => {
   const { id } = req.params;
 
   return Movie.findByIdAndUpdate(id, {
     $push: { saga: req.body }
   })
     .then(movie => res.status(201).json(movie))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-MovieController.index = (req, res) => {
+MovieController.index = (req, res, next) => {
   return Movie.find({})
     .then(movies => res.status(200).json(movies))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-MovieController.get = (req, res) => {
+MovieController.get = (req, res, next) => {
   const { id } = req.params;
 
   return Movie.findById(id)
     .then(movie => res.status(200).json(movie))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-MovieController.getFromSaga = (req, res) => {
+MovieController.getFromSaga = (req, res, next) => {
   const { id, movie } = req.params;
 
   return Movie.findOne({ _id: id, 'saga._id': movie })
     .then(({ saga }) => res.status(200).json(saga[movie]))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-MovieController.update = (req, res) => {
+MovieController.update = (req, res, next) => {
   const { id } = req.params;
   const payload = req.body;
 
   return Movie.findByIdAndUpdate(id, payload, { new: true })
     .then(movie => res.status(200).json(movie))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-MovieController.updateOnSaga = (req, res) => {
+MovieController.updateOnSaga = (req, res, next) => {
   const { id, movie } = req.params;
   const payload = req.body;
 
@@ -59,34 +60,38 @@ MovieController.updateOnSaga = (req, res) => {
     new: true
   })
     .then(({ saga }) => res.status(200).json(saga[movie]))
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-MovieController.destroy = (req, res) => {
+MovieController.destroy = (req, res, next) => {
   const { id } = req.params;
 
   return Movie.findByIdAndRemove(id)
     .then(movie => {
-      if (movie)
+      if (movie) {
         return res.status(200).json({
           message: 'Movie deleted successfully!'
         });
-      res.status(404);
+      }
+
+      throw new ApiError(404, 'Movie');
     })
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 
-MovieController.destroyOnSaga = (req, res) => {
+MovieController.destroyOnSaga = (req, res, next) => {
   const { id, movie } = req.params;
 
   return Movie.findOneAndRemove({ _id: id, 'saga._id': movie })
     .then(movie => {
-      if (movie)
+      if (movie) {
         return res.status(200).json({
           message: 'Movie deleted successfully!'
         });
-      res.status(404);
+      }
+
+      throw new ApiError(404, 'Movie');
     })
-    .catch(err => res.status(400).json(err));
+    .catch(err => next(err));
 };
 export default MovieController;

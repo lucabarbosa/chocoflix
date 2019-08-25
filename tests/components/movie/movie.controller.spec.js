@@ -4,11 +4,13 @@ import sinonChai from 'sinon-chai';
 
 import Movie from '../../../src/components/movie/movie.model';
 import MovieController from '../../../src/components/movie/movie.controller';
-import { it } from 'mocha';
+
+import ApiError from '../../../src/helpers/ApiError';
 
 chai.use(sinonChai);
 
 describe('Movie: Controller', () => {
+  // Express Params
   const req = {
     body: {
       title: 'Harry Potter',
@@ -21,12 +23,18 @@ describe('Movie: Controller', () => {
   };
 
   const res = {};
+  let next;
+
+  // Errors
   const error = new Error({ error: 'Error Message' });
+  const notFoundError = new ApiError(404, 'Movie');
+
   let expectedResult;
 
   beforeEach(() => {
     res.json = sinon.spy();
     res.status = sinon.stub().returns(res);
+    next = sinon.spy();
   });
 
   describe('create() movie', () => {
@@ -41,28 +49,28 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.body', () => {
-      return MovieController.create(req, res).then(() => {
+      return MovieController.create(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(req.body);
       });
     });
 
     it('should return the created object', () => {
       expectedResult = { ...req.body };
-      return MovieController.create(req, res).then(() => {
+      return MovieController.create(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
     it('should return 201 when the object is created', () => {
-      return MovieController.create(req, res).then(() => {
+      return MovieController.create(req, res, next).then(() => {
         expect(res.status).to.have.been.calledWith(201);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub = modelStub.rejects(error);
-      return MovieController.create(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+      return MovieController.create(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -86,13 +94,13 @@ describe('Movie: Controller', () => {
     });
 
     it('should call modelStub with req.params.id', () => {
-      return MovieController.append(req2, res).then(() => {
+      return MovieController.append(req2, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(req2.params.id);
       });
     });
 
     it('should call modelStub with req.body', () => {
-      return MovieController.append(req2, res).then(() => {
+      return MovieController.append(req2, res, next).then(() => {
         const payload = {
           $push: { saga: req2.body }
         };
@@ -103,21 +111,21 @@ describe('Movie: Controller', () => {
 
     it('should return the object', () => {
       expectedResult = { ...req2.body };
-      return MovieController.append(req2, res).then(() => {
+      return MovieController.append(req2, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
     it('should return 201 when object is appendedd', () => {
-      return MovieController.append(req2, res).then(() => {
+      return MovieController.append(req2, res, next).then(() => {
         expect(res.status).to.have.been.calledWith(201);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
-      return MovieController.append(req2, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+      return MovieController.append(req2, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -134,7 +142,7 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with {}', () => {
-      return MovieController.index(req, res).then(() => {
+      return MovieController.index(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith({});
       });
     });
@@ -143,21 +151,21 @@ describe('Movie: Controller', () => {
       expectedResult = [{}, {}];
       modelStub.resolves(expectedResult);
 
-      return MovieController.index(req, res).then(() => {
+      return MovieController.index(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
     it('should return 200 when no error', () => {
-      return MovieController.index(req, res).then(() => {
+      return MovieController.index(req, res, next).then(() => {
         expect(res.status).to.have.been.calledWith(200);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
-      return MovieController.index(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+      return MovieController.index(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -174,7 +182,7 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.params.id', () => {
-      return MovieController.get(req, res).then(() => {
+      return MovieController.get(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(req.params.id);
       });
     });
@@ -183,21 +191,21 @@ describe('Movie: Controller', () => {
       expectedResult = {};
       modelStub.resolves(expectedResult);
 
-      return MovieController.get(req, res).then(() => {
+      return MovieController.get(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
     it('should return 200 when no error', () => {
-      return MovieController.get(req, res).then(() => {
+      return MovieController.get(req, res, next).then(() => {
         expect(res.status).to.have.been.calledWith(200);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
-      return MovieController.get(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+      return MovieController.get(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -225,7 +233,7 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.params.id', () => {
-      return MovieController.getFromSaga(req, res).then(() => {
+      return MovieController.getFromSaga(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith({
           _id: req.params.id,
           'saga._id': req.params.movie
@@ -234,7 +242,7 @@ describe('Movie: Controller', () => {
     });
 
     it('should return a movie', () => {
-      return MovieController.getFromSaga(req, res).then(() => {
+      return MovieController.getFromSaga(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(
           expectedResult.saga[req.params.movie]
         );
@@ -242,15 +250,15 @@ describe('Movie: Controller', () => {
     });
 
     it('should return 200 when no error', () => {
-      return MovieController.getFromSaga(req, res).then(() => {
+      return MovieController.getFromSaga(req, res, next).then(() => {
         expect(res.status).to.have.been.calledWith(200);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
-      return MovieController.getFromSaga(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+      return MovieController.getFromSaga(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -267,13 +275,13 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.params.id', () => {
-      return MovieController.update(req, res).then(() => {
+      return MovieController.update(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(req.params.id);
       });
     });
 
     it('should call model with req.body', () => {
-      return MovieController.update(req, res).then(() => {
+      return MovieController.update(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(req.params.id, req.body, {
           new: true
         });
@@ -282,21 +290,21 @@ describe('Movie: Controller', () => {
 
     it('should return updated object', () => {
       expectedResult = { ...req.body };
-      return MovieController.update(req, res).then(() => {
+      return MovieController.update(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
     it('should return 200 status', () => {
-      return MovieController.update(req, res).then(() => {
+      return MovieController.update(req, res, next).then(() => {
         expect(res.status).to.have.been.calledWith(200);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error an error occurs', () => {
       modelStub.rejects(error);
-      return MovieController.update(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+      return MovieController.update(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -313,7 +321,7 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.params.id', () => {
-      return MovieController.updateOnSaga(req, res).then(() => {
+      return MovieController.updateOnSaga(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith({
           _id: req.params.id,
           'saga._id': req.params.movie
@@ -322,7 +330,7 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.body', () => {
-      return MovieController.updateOnSaga(req, res).then(() => {
+      return MovieController.updateOnSaga(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(
           { _id: req.params.id, 'saga._id': req.params.movie },
           req.body,
@@ -347,7 +355,7 @@ describe('Movie: Controller', () => {
 
       modelStub.resolves(expectedResult);
 
-      return MovieController.updateOnSaga(req, res).then(() => {
+      return MovieController.updateOnSaga(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(
           expectedResult.saga[req.params.movie]
         );
@@ -355,15 +363,15 @@ describe('Movie: Controller', () => {
     });
 
     it('should return 200 status', () => {
-      return MovieController.updateOnSaga(req, res).then(() => {
+      return MovieController.updateOnSaga(req, res, next).then(() => {
         expect(res.status).to.have.been.calledWith(200);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
-      return MovieController.updateOnSaga(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+      return MovieController.updateOnSaga(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -380,7 +388,7 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.params.id', () => {
-      return MovieController.destroy(req, res).then(() => {
+      return MovieController.destroy(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(req.params.id);
       });
     });
@@ -390,22 +398,28 @@ describe('Movie: Controller', () => {
         message: 'Movie deleted successfully!'
       };
 
-      return MovieController.destroy(req, res).then(() => {
+      return MovieController.destroy(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
-    it('should return 404 if movie doesnt exists', () => {
+    it('should call next with not found error when movie doesnt exists', () => {
       modelStub.resolves();
-      return MovieController.destroy(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(404);
+      return MovieController.destroy(req, res, next).then(() => {
+        expect(next).to.have.been.called;
+
+        const expectedError = next.firstCall.args[0];
+
+        expect(expectedError).to.be.an.instanceOf(ApiError);
+        expect(expectedError.code).to.be.equal(notFoundError.code);
+        expect(expectedError.message).to.be.equal(notFoundError.message);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
-      return MovieController.destroy(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+      return MovieController.destroy(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -422,7 +436,7 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.params.id', () => {
-      return MovieController.destroyOnSaga(req, res).then(() => {
+      return MovieController.destroyOnSaga(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith({
           _id: req.params.id,
           'saga._id': req.params.movie
@@ -435,22 +449,28 @@ describe('Movie: Controller', () => {
         message: 'Movie deleted successfully!'
       };
 
-      return MovieController.destroyOnSaga(req, res).then(() => {
+      return MovieController.destroyOnSaga(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
     });
 
-    it('should return 404 if movie doesnt exists', () => {
+    it('should call next with not found error when movie doesnt exists', () => {
       modelStub.resolves();
-      return MovieController.destroyOnSaga(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(404);
+      return MovieController.destroyOnSaga(req, res, next).then(() => {
+        expect(next).to.have.been.called;
+
+        const expectedError = next.firstCall.args[0];
+
+        expect(expectedError).to.be.an.instanceOf(ApiError);
+        expect(expectedError.code).to.be.equal(notFoundError.code);
+        expect(expectedError.message).to.be.equal(notFoundError.message);
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
-      return MovieController.destroyOnSaga(req, res).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+      return MovieController.destroyOnSaga(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
