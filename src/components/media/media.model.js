@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose';
+import { Schema } from 'mongoose';
 
 const Media = new Schema({
   title: {
@@ -28,9 +28,16 @@ const Media = new Schema({
     }
   ],
   subtitles: [
-    {
-      type: String
-    }
+    new Schema({
+      filePath: {
+        type: String,
+        required: true
+      },
+      language: {
+        type: String,
+        required: true
+      }
+    })
   ]
 });
 
