@@ -17,8 +17,8 @@ describe('Movie: Controller', () => {
       categories: []
     },
     params: {
-      id: 'asda6as89dc2we2f',
-      movie: 0
+      id: '56cb91bdc3464f14678934ba',
+      movie: '56cb91bdc3464f14678934ba'
     }
   };
 
@@ -197,6 +197,8 @@ describe('Movie: Controller', () => {
     });
 
     it('should return 200 when no error', () => {
+      modelStub.resolves({});
+
       return MovieController.get(req, res, next).then(() => {
         expect(res.status).to.have.been.calledWith(200);
       });
@@ -215,14 +217,22 @@ describe('Movie: Controller', () => {
 
     beforeEach(() => {
       expectedResult = {
-        title: 'Harry Potter',
-        categories: [],
-        saga: [
-          {
-            title: 'Harry Potter ea Pedra Filosofal',
-            description: 'First movie of Harry Potter'
+        saga: {
+          data: {
+            title: 'Harry Potter',
+            categories: [],
+            saga: [
+              {
+                _id: req.params.movie,
+                title: 'Harry Potter ea Pedra Filosofal',
+                description: 'First movie of Harry Potter'
+              }
+            ]
+          },
+          id: function(id) {
+            return this.data.saga.filter(el => el._id == id)[0];
           }
-        ]
+        }
       };
 
       modelStub = sinon.stub(Movie, 'findOne').resolves(expectedResult);
@@ -244,7 +254,7 @@ describe('Movie: Controller', () => {
     it('should return a movie', () => {
       return MovieController.getFromSaga(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(
-          expectedResult.saga[req.params.movie]
+          expectedResult.saga.data.saga[0]
         );
       });
     });
@@ -313,7 +323,28 @@ describe('Movie: Controller', () => {
     let modelStub;
 
     beforeEach(() => {
-      modelStub = sinon.stub(Movie, 'findOneAndUpdate').resolves(req.body);
+      expectedResult = {
+        saga: {
+          data: {
+            title: 'Harry Potter',
+            categories: [],
+            saga: [
+              {
+                _id: req.params.movie,
+                title: 'Harry Potter ea Pedra Filosofal',
+                description: 'First movie of Harry Potter'
+              }
+            ]
+          },
+          id: function(id) {
+            return this.data.saga.filter(el => el._id == id)[0];
+          }
+        }
+      };
+
+      modelStub = sinon
+        .stub(Movie, 'findOneAndUpdate')
+        .resolves(expectedResult);
     });
 
     afterEach(() => {
@@ -330,34 +361,26 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.body', () => {
+      const payload = req.body;
+      const set = {};
+
+      for (let prop in payload) {
+        set['saga.$.' + prop] = payload[prop];
+      }
+
       return MovieController.updateOnSaga(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(
           { _id: req.params.id, 'saga._id': req.params.movie },
-          req.body,
-          {
-            new: true
-          }
+          { $set: set },
+          { new: true }
         );
       });
     });
 
     it('should return updated object', () => {
-      expectedResult = {
-        title: 'Harry Potter',
-        categories: [],
-        saga: [
-          {
-            title: 'Harry Potter ea Pedra Filosofal',
-            description: 'First movie of Harry Potter'
-          }
-        ]
-      };
-
-      modelStub.resolves(expectedResult);
-
       return MovieController.updateOnSaga(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(
-          expectedResult.saga[req.params.movie]
+          expectedResult.saga.data.saga[0]
         );
       });
     });
@@ -428,7 +451,26 @@ describe('Movie: Controller', () => {
     let modelStub;
 
     beforeEach(() => {
-      modelStub = sinon.stub(Movie, 'findOneAndRemove').resolves(req.body);
+      expectedResult = {
+        saga: {
+          data: {
+            title: 'Harry Potter',
+            categories: [],
+            saga: [
+              {
+                _id: req.params.movie,
+                title: 'Harry Potter ea Pedra Filosofal',
+                description: 'First movie of Harry Potter'
+              }
+            ]
+          },
+          id: () => null
+        }
+      };
+
+      modelStub = sinon
+        .stub(Movie, 'findOneAndUpdate')
+        .resolves(expectedResult);
     });
 
     afterEach(() => {
@@ -437,10 +479,15 @@ describe('Movie: Controller', () => {
 
     it('should call model with req.params.id', () => {
       return MovieController.destroyOnSaga(req, res, next).then(() => {
-        expect(modelStub).to.have.been.calledWith({
-          _id: req.params.id,
-          'saga._id': req.params.movie
-        });
+        expect(modelStub).to.have.been.calledWith(
+          {
+            _id: req.params.id,
+            'saga._id': req.params.movie
+          },
+          {
+            $pull: { saga: { _id: req.params.movie } }
+          }
+        );
       });
     });
 
