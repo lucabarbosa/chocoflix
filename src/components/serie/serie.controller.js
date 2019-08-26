@@ -1,8 +1,9 @@
 import Serie from './serie.model';
+import ApiError from '../../helpers/ApiError';
 
 const SerieController = {};
 
-SerieController.create = (req, res) => {
+SerieController.create = (req, res, next) => {
   const payload = req.body;
 
   return Serie.create(payload)
@@ -10,7 +11,7 @@ SerieController.create = (req, res) => {
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.appendSeason = (req, res) => {
+SerieController.appendSeason = (req, res, next) => {
   const { id } = req.params;
 
   return Serie.findByIdAndUpdate(id, {
@@ -20,7 +21,7 @@ SerieController.appendSeason = (req, res) => {
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.appendEpisode = (req, res) => {
+SerieController.appendEpisode = (req, res, next) => {
   const { id, season } = req.params;
   const payload = req.body;
 
@@ -34,13 +35,13 @@ SerieController.appendEpisode = (req, res) => {
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.index = (req, res) => {
+SerieController.index = (req, res, next) => {
   return Serie.find({})
     .then(series => res.status(200).json(series))
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.get = (req, res) => {
+SerieController.get = (req, res, next) => {
   const { id } = req.params;
 
   return Serie.findById(id)
@@ -48,7 +49,7 @@ SerieController.get = (req, res) => {
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.getSeason = (req, res) => {
+SerieController.getSeason = (req, res, next) => {
   const { id, season } = req.params;
 
   return Serie.findOne({ _id: id, 'seasons._id': season })
@@ -56,7 +57,7 @@ SerieController.getSeason = (req, res) => {
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.update = (req, res) => {
+SerieController.update = (req, res, next) => {
   const { id } = req.params;
   const payload = req.body;
 
@@ -65,7 +66,7 @@ SerieController.update = (req, res) => {
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.updateSeason = (req, res) => {
+SerieController.updateSeason = (req, res, next) => {
   const { id, season } = req.params;
   const payload = req.body;
 
@@ -76,7 +77,7 @@ SerieController.updateSeason = (req, res) => {
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.updateEpisode = (req, res) => {
+SerieController.updateEpisode = (req, res, next) => {
   const { id, season, episode } = req.params;
   const payload = req.body;
 
@@ -93,7 +94,7 @@ SerieController.updateEpisode = (req, res) => {
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.destroy = (req, res) => {
+SerieController.destroy = (req, res, next) => {
   const { id } = req.params;
 
   return Serie.findByIdAndRemove(id)
@@ -107,7 +108,7 @@ SerieController.destroy = (req, res) => {
     .catch(err => res.status(400).json(err));
 };
 
-SerieController.destroySeason = (req, res) => {
+SerieController.destroySeason = (req, res, next) => {
   const { id, season } = req.params;
 
   return Serie.findOneAndRemove({ _id: id, 'seasons._id': season })
@@ -120,4 +121,31 @@ SerieController.destroySeason = (req, res) => {
     })
     .catch(err => res.status(400).json(err));
 };
+
+SerieController.destroyEpisode = (req, res, next) => {
+  const { serie, season, episode } = req.params;
+
+  return Serie.findOneAndUpdate(
+    { _id: serie, 'seasons._id': season },
+    { $pull: { 'seasons.$.episodes': { _id: episode } } },
+    { new: true }
+  )
+    .then(serieFromDb => {
+      if (!serieFromDb) throw new ApiError(404, 'Episode');
+
+      const episodeIsOnSeason = serieFromDb.seasons
+        .id(season)
+        .episodes.id(episode);
+
+      if (!episodeIsOnSeason) {
+        return res.status(200).json({
+          message: 'Episode deleted successfully!'
+        });
+      }
+
+      throw new ApiError(500, 'Episode');
+    })
+    .catch(err => next(err));
+};
+
 export default SerieController;
