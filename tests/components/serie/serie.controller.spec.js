@@ -4,12 +4,13 @@ import sinonChai from 'sinon-chai';
 
 import Serie from '../../../src/components/serie/serie.model';
 import SerieController from '../../../src/components/serie/serie.controller';
-import { it } from 'mocha';
+
+import getPartialSubdocumentUpdatePayload from '../../../src/utils/getPartialSubdocumentUpdatePayload';
 import ApiError from '../../../src/helpers/ApiError';
 
 chai.use(sinonChai);
 
-describe('Serie: Controller', () => {
+describe.only('Serie: Controller', () => {
   // Express Params
   const req = {
     body: {
@@ -18,8 +19,8 @@ describe('Serie: Controller', () => {
     },
     params: {
       serie: 'asda6as89dc2we2f',
-      season: 0,
-      episode: 0
+      season: 'asda6as89dc2we2f',
+      episode: 'asda6as89dc2we2f'
     }
   };
 
@@ -68,10 +69,10 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub = modelStub.rejects(error);
       return SerieController.create(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -87,9 +88,9 @@ describe('Serie: Controller', () => {
       modelStub.restore();
     });
 
-    it('should call modelStub with req.params.id', () => {
+    it('should call modelStub with req.params.serie', () => {
       return SerieController.appendSeason(req, res, next).then(() => {
-        expect(modelStub).to.have.been.calledWith(req.params.id);
+        expect(modelStub).to.have.been.calledWith(req.params.serie);
       });
     });
 
@@ -99,7 +100,7 @@ describe('Serie: Controller', () => {
           $push: { seasons: { episodes: [] } }
         };
 
-        expect(modelStub).to.have.been.calledWith(req.params.id, payload);
+        expect(modelStub).to.have.been.calledWith(req.params.serie, payload);
       });
     });
 
@@ -116,10 +117,10 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.appendSeason(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -128,7 +129,7 @@ describe('Serie: Controller', () => {
     const req2 = {
       body: {},
       params: {
-        id: 'asdjaslkdmakll',
+        serie: 'asdjaslkdmakll',
         season: 0
       }
     };
@@ -143,11 +144,11 @@ describe('Serie: Controller', () => {
       modelStub.restore();
     });
 
-    it('should call modelStub with req.params.id', () => {
+    it('should call modelStub with req.params.serie', () => {
       return SerieController.appendEpisode(req2, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith({
-          _id: req2.params.id,
-          'seasons._id': req.params.season
+          _id: req2.params.serie,
+          'seasons._id': req2.params.season
         });
       });
     });
@@ -155,13 +156,13 @@ describe('Serie: Controller', () => {
     it('should call modelStub with req.body', () => {
       return SerieController.appendEpisode(req2, res, next).then(() => {
         const payload = {
-          $push: { episodes: req2.body }
+          $push: { 'seasons.$.episodes': req2.body }
         };
 
         expect(modelStub).to.have.been.calledWith(
           {
-            _id: req2.params.id,
-            'seasons._id': req.params.season
+            _id: req2.params.serie,
+            'seasons._id': req2.params.season
           },
           payload
         );
@@ -181,10 +182,10 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.appendEpisode(req2, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -221,10 +222,10 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.index(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -240,9 +241,9 @@ describe('Serie: Controller', () => {
       modelStub.restore();
     });
 
-    it('should call model with req.params.id', () => {
+    it('should call model with req.params.serie', () => {
       return SerieController.get(req, res, next).then(() => {
-        expect(modelStub).to.have.been.calledWith(req.params.id);
+        expect(modelStub).to.have.been.calledWith(req.params.serie);
       });
     });
 
@@ -261,10 +262,10 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.get(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -276,11 +277,16 @@ describe('Serie: Controller', () => {
       expectedResult = {
         title: 'Harry Potter',
         categories: [],
-        seasons: [
-          {
-            episodes: [{}, {}]
+        seasons: {
+          data: [
+            {
+              episodes: [{}, {}]
+            }
+          ],
+          id: function(season) {
+            return this.data[0];
           }
-        ]
+        }
       };
 
       modelStub = sinon.stub(Serie, 'findOne').resolves(expectedResult);
@@ -290,10 +296,10 @@ describe('Serie: Controller', () => {
       modelStub.restore();
     });
 
-    it('should call model with req.params.id', () => {
+    it('should call model with req.params.serie', () => {
       return SerieController.getSeason(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith({
-          _id: req.params.id,
+          _id: req.params.serie,
           'seasons._id': req.params.season
         });
       });
@@ -302,7 +308,7 @@ describe('Serie: Controller', () => {
     it('should return a serie', () => {
       return SerieController.getSeason(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(
-          expectedResult.seasons[req.params.season]
+          expectedResult.seasons.data[0]
         );
       });
     });
@@ -313,10 +319,10 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.getSeason(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -332,15 +338,15 @@ describe('Serie: Controller', () => {
       modelStub.restore();
     });
 
-    it('should call model with req.params.id', () => {
+    it('should call model with req.params.serie', () => {
       return SerieController.update(req, res, next).then(() => {
-        expect(modelStub).to.have.been.calledWith(req.params.id);
+        expect(modelStub).to.have.been.calledWith(req.params.serie);
       });
     });
 
     it('should call model with req.body', () => {
       return SerieController.update(req, res, next).then(() => {
-        expect(modelStub).to.have.been.calledWith(req.params.id, req.body, {
+        expect(modelStub).to.have.been.calledWith(req.params.serie, req.body, {
           new: true
         });
       });
@@ -359,10 +365,10 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.update(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -371,50 +377,51 @@ describe('Serie: Controller', () => {
     let modelStub;
 
     beforeEach(() => {
-      modelStub = sinon.stub(Serie, 'findOneAndUpdate').resolves(req.body);
+      expectedResult = {
+        title: 'Harry Potter',
+        categories: [],
+        seasons: {
+          data: [{ episodes: [{}, {}] }],
+          id: function(season) {
+            return this.data[0];
+          }
+        }
+      };
+
+      modelStub = sinon
+        .stub(Serie, 'findOneAndUpdate')
+        .resolves(expectedResult);
     });
 
     afterEach(() => {
       modelStub.restore();
     });
 
-    it('should call model with req.params.id', () => {
+    it('should call model with req.params.serie', () => {
       return SerieController.updateSeason(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith({
-          _id: req.params.id,
+          _id: req.params.serie,
           'seasons._id': req.params.season
         });
       });
     });
 
     it('should call model with req.body', () => {
+      const payload = getPartialSubdocumentUpdatePayload('seasons', req.body);
+
       return SerieController.updateSeason(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(
-          { _id: req.params.id, 'seasons._id': req.params.season },
-          req.body,
-          {
-            new: true
-          }
+          { _id: req.params.serie, 'seasons._id': req.params.season },
+          { $set: payload },
+          { new: true }
         );
       });
     });
 
     it('should return updated object', () => {
-      expectedResult = {
-        title: 'Harry Potter',
-        categories: [],
-        seasons: [
-          {
-            episodes: [{}, {}]
-          }
-        ]
-      };
-
-      modelStub.resolves(expectedResult);
-
       return SerieController.updateSeason(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(
-          expectedResult.seasons[req.params.season]
+          expectedResult.seasons.data[0]
         );
       });
     });
@@ -425,10 +432,10 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.updateSeason(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -437,17 +444,39 @@ describe('Serie: Controller', () => {
     let modelStub;
 
     beforeEach(() => {
-      modelStub = sinon.stub(Serie, 'findOneAndUpdate').resolves(req.body);
+      expectedResult = {
+        title: 'Harry Potter',
+        categories: [],
+        seasons: {
+          data: [
+            {
+              episodes: {
+                data: [{}, {}],
+                id: function(episode) {
+                  return this.data[0];
+                }
+              }
+            }
+          ],
+          id: function(season) {
+            return this.data[0];
+          }
+        }
+      };
+
+      modelStub = sinon
+        .stub(Serie, 'findOneAndUpdate')
+        .resolves(expectedResult);
     });
 
     afterEach(() => {
       modelStub.restore();
     });
 
-    it('should call model with req.params.id', () => {
+    it('should call model with req.params.serie', () => {
       return SerieController.updateEpisode(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith({
-          _id: req.params.id,
+          _id: req.params.serie,
           'seasons._id': req.params.season,
           'seasons.$.episodes._id': req.params.episode
         });
@@ -458,7 +487,7 @@ describe('Serie: Controller', () => {
       return SerieController.updateEpisode(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(
           {
-            _id: req.params.id,
+            _id: req.params.serie,
             'seasons._id': req.params.season,
             'seasons.$.episodes._id': req.params.episode
           },
@@ -471,21 +500,9 @@ describe('Serie: Controller', () => {
     });
 
     it('should return updated object', () => {
-      expectedResult = {
-        title: 'Harry Potter',
-        categories: [],
-        seasons: [
-          {
-            episodes: [{}, {}]
-          }
-        ]
-      };
-
-      modelStub.resolves(expectedResult);
-
       return SerieController.updateEpisode(req, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(
-          expectedResult.seasons[req.params.season].episodes[req.params.episode]
+          expectedResult.seasons.data[0].episodes.data[0]
         );
       });
     });
@@ -496,10 +513,10 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.updateEpisode(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -515,9 +532,9 @@ describe('Serie: Controller', () => {
       modelStub.restore();
     });
 
-    it('should call model with req.params.id', () => {
+    it('should call model with req.params.serie', () => {
       return SerieController.destroy(req, res, next).then(() => {
-        expect(modelStub).to.have.been.calledWith(req.params.id);
+        expect(modelStub).to.have.been.calledWith(req.params.serie);
       });
     });
 
@@ -531,17 +548,24 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 404 if serie doesnt exists', () => {
+    it('should call next with 404 if serie doesnt exists', () => {
       modelStub.resolves();
+
       return SerieController.destroy(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(404);
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(notFoundError.code);
+        expect(calledError.message).to.be.equal('Serie Not Found.');
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.destroy(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
@@ -550,23 +574,34 @@ describe('Serie: Controller', () => {
     let modelStub;
 
     beforeEach(() => {
-      modelStub = sinon.stub(Serie, 'findOneAndRemove').resolves(req.body);
+      modelStub = sinon.stub(Serie, 'findOneAndUpdate').resolves();
     });
 
     afterEach(() => {
       modelStub.restore();
     });
 
-    it('should call model with req.params.id', () => {
+    it('should call model with req.params.serie', () => {
       return SerieController.destroySeason(req, res, next).then(() => {
-        expect(modelStub).to.have.been.calledWith({
-          _id: req.params.id,
-          'seasons._id': req.params.season
-        });
+        expect(modelStub).to.have.been.calledWith(
+          { _id: req.params.serie, 'seasons._id': req.params.season },
+          { $pull: { 'seasons.$': { _id: req.params.season } } },
+          { new: true }
+        );
       });
     });
 
     it('should return successful deletion message', () => {
+      const serie = {
+        seasons: {
+          id() {
+            return false;
+          }
+        }
+      };
+
+      modelStub.resolves(serie);
+
       expectedResult = {
         message: 'Season deleted successfully!'
       };
@@ -576,22 +611,29 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 404 if serie doesnt exists', () => {
+    it('should call next with 404 if season doesnt exists', () => {
       modelStub.resolves();
+
       return SerieController.destroySeason(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(404);
+        expect(next).to.have.been.called;
+
+        const calledError = next.firstCall.args[0];
+
+        expect(calledError).to.be.an.instanceOf(ApiError);
+        expect(calledError.code).to.be.equal(notFoundError.code);
+        expect(calledError.message).to.be.equal('Season Not Found.');
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.destroySeason(req, res, next).then(() => {
-        expect(res.status).to.have.been.calledWith(400);
+        expect(next).to.have.been.calledWith(error);
       });
     });
   });
 
-  describ('destroyEpisode()', () => {
+  describe('destroyEpisode()', () => {
     let modelStub;
 
     beforeEach(() => {
@@ -659,7 +701,7 @@ describe('Serie: Controller', () => {
       });
     });
 
-    it('should return 400 when an error occurs', () => {
+    it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.destroyEpisode(req, res, next).then(() => {
         expect(next).to.have.been.calledWith(error);

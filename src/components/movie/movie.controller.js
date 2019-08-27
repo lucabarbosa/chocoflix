@@ -1,6 +1,8 @@
 import Movie from './movie.model';
 import ApiError from '../../helpers/ApiError';
 
+import getPartialSubdocumentUpdatePayload from '../../utils/getPartialSubdocumentUpdatePayload';
+
 const MovieController = {};
 
 MovieController.create = (req, res, next) => {
@@ -71,7 +73,7 @@ MovieController.update = (req, res, next) => {
 
 MovieController.updateOnSaga = (req, res, next) => {
   const { id, movie } = req.params;
-  const payload = getUpdatePayload('saga', req.body);
+  const payload = getPartialSubdocumentUpdatePayload('saga', req.body);
 
   return Movie.findOneAndUpdate(
     { _id: id, 'saga._id': movie },
@@ -128,15 +130,5 @@ MovieController.destroyOnSaga = (req, res, next) => {
     })
     .catch(err => next(err));
 };
-
-function getUpdatePayload(operator, payload) {
-  const set = {};
-
-  for (let prop in payload) {
-    set[operator + '.$.' + prop] = payload[prop];
-  }
-
-  return set;
-}
 
 export default MovieController;
