@@ -54,6 +54,16 @@ describe('Category: Routes', () => {
           done(err);
         });
     });
+
+    it('should return 400 if body is invalid', done => {
+      request
+        .post(BASE_URL)
+        .send({})
+        .end((err, res) => {
+          expect(res).to.have.status(400);
+          done(err);
+        });
+    });
   });
 
   describe('GET /categories', () => {
