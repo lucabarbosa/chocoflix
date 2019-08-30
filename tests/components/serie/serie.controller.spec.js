@@ -10,7 +10,7 @@ import ApiError from '../../../src/helpers/ApiError';
 
 chai.use(sinonChai);
 
-describe.only('Serie: Controller', () => {
+describe('Serie: Controller', () => {
   // Express Params
   const req = {
     body: {
@@ -412,7 +412,7 @@ describe.only('Serie: Controller', () => {
       return SerieController.updateSeason(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(
           { _id: req.params.serie, 'seasons._id': req.params.season },
-          { $set: payload },
+          payload,
           { new: true }
         );
       });

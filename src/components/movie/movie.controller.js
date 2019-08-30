@@ -75,11 +75,9 @@ MovieController.updateOnSaga = (req, res, next) => {
   const { id, movie } = req.params;
   const payload = getPartialSubdocumentUpdatePayload('saga', req.body);
 
-  return Movie.findOneAndUpdate(
-    { _id: id, 'saga._id': movie },
-    { $set: payload },
-    { new: true }
-  )
+  return Movie.findOneAndUpdate({ _id: id, 'saga._id': movie }, payload, {
+    new: true
+  })
     .then(movieFromDb => {
       if (movieFromDb) {
         const movieOnSaga = movieFromDb.saga.id(movie);

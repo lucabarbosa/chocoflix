@@ -16,10 +16,17 @@ SerieController.create = (req, res, next) => {
 SerieController.appendSeason = (req, res, next) => {
   const { serie } = req.params;
 
-  return Serie.findByIdAndUpdate(serie, {
-    $push: { seasons: { episodes: [] } }
-  })
-    .then(serie => res.status(201).json(serie))
+  return Serie.findByIdAndUpdate(
+    serie,
+    {
+      $push: { seasons: { episodes: [] } }
+    },
+    { new: true }
+  )
+    .then(serieFromDb => {
+      if (serieFromDb) return res.status(201).json(serieFromDb);
+      throw new ApiError(404, 'Serie');
+    })
     .catch(err => next(err));
 };
 
@@ -31,9 +38,16 @@ SerieController.appendEpisode = (req, res, next) => {
     { _id: serie, 'seasons._id': season },
     {
       $push: { 'seasons.$.episodes': payload }
-    }
+    },
+    { new: true }
   )
-    .then(serie => res.status(201).json(serie))
+    .then(serieFromDb => {
+      if (!serieFromDb) throw new ApiError(404, 'Serie');
+      else if (!serieFromDb.seasons.id(season))
+        throw new ApiError(404, 'Season');
+
+      return res.status(201).json(serieFromDb);
+    })
     .catch(err => next(err));
 };
 
@@ -47,7 +61,10 @@ SerieController.get = (req, res, next) => {
   const { serie } = req.params;
 
   return Serie.findById(serie)
-    .then(serie => res.status(200).json(serie))
+    .then(serieFromDb => {
+      if (serieFromDb) return res.status(200).json(serieFromDb);
+      throw new ApiError(404, 'Serie');
+    })
     .catch(err => next(err));
 };
 
@@ -85,7 +102,7 @@ SerieController.updateSeason = (req, res, next) => {
 
   return Serie.findOneAndUpdate(
     { _id: serie, 'seasons._id': season },
-    { $set: payload },
+    payload,
     { new: true }
   )
     .then(serieFromDb => {
@@ -101,12 +118,16 @@ SerieController.updateSeason = (req, res, next) => {
 
 SerieController.updateEpisode = (req, res, next) => {
   const { serie, season, episode } = req.params;
-  const payload = req.body;
+  const payload = getPartialSubdocumentUpdatePayload(
+    'seasons.$[season].episodes',
+    req.body
+  );
 
   return Serie.findOneAndUpdate(
-    { _id: serie, 'seasons._id': season, 'seasons.$.episodes._id': episode },
+    { _id: serie, 'seasons._id': season, 'seasons.episodes._id': episode },
     payload,
     {
+      arrayFilters: [{ 'season._id': season }],
       new: true
     }
   )
@@ -145,7 +166,7 @@ SerieController.destroySeason = (req, res, next) => {
 
   return Serie.findOneAndUpdate(
     { _id: serie, 'seasons._id': season },
-    { $pull: { 'seasons.$': { _id: season } } },
+    { $pull: { seasons: { _id: season } } },
     { new: true }
   )
     .then(serieFromDb => {

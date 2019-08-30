@@ -1,9 +1,15 @@
 export default function getPartialSubdocumentUpdatePayload(operator, payload) {
-  const set = {};
+  const result = {};
 
   for (let prop in payload) {
-    set[operator + '.$.' + prop] = payload[prop];
+    if (Array.isArray(payload[prop])) {
+      result['$push'] = result['$push'] || {};
+      result['$push'][operator + '.$.' + prop] = payload[prop];
+    } else {
+      result['$set'] = result['$set'] || {};
+      result['$set'][operator + '.$.' + prop] = payload[prop];
+    }
   }
 
-  return set;
+  return result;
 }
