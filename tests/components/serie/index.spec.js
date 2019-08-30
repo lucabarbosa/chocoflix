@@ -72,6 +72,16 @@ describe('Serie: Router', () => {
           done(err);
         });
     });
+
+    it('should return 400 if body is invalid', done => {
+      request
+        .post(BASE_URL)
+        .send({})
+        .end((err, res) => {
+          expect(res).to.have.status(400);
+          done(err);
+        });
+    });
   });
 
   describe('POST /series/:serie', () => {
@@ -144,6 +154,7 @@ describe('Serie: Router', () => {
     it('should return 404 when season doesnt exists', done => {
       request
         .post(`${BASE_URL}/${defaultIds.serie}/${defaultIds.nonexistent}`)
+        .send(defaultEpisode)
         .end((err, res) => {
           expect(res).to.have.status(404);
           done(err);
@@ -153,8 +164,19 @@ describe('Serie: Router', () => {
     it('should return 404 when serie doesnt exists', done => {
       request
         .post(`${BASE_URL}/${defaultIds.nonexistent}/${defaultIds.season}`)
+        .send(defaultEpisode)
         .end((err, res) => {
           expect(res).to.have.status(404);
+          done(err);
+        });
+    });
+
+    it('should return 400 if body is invalid', done => {
+      request
+        .post(`${BASE_URL}/${defaultIds.serie}/${defaultIds.season}`)
+        .send({})
+        .end((err, res) => {
+          expect(res).to.have.status(400);
           done(err);
         });
     });
