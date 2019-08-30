@@ -10,7 +10,7 @@ import ApiError from '../../../src/helpers/ApiError';
 
 chai.use(sinonChai);
 
-describe.only('Serie: Controller', () => {
+describe('Serie: Controller', () => {
   // Express Params
   const req = {
     body: {
@@ -134,10 +134,24 @@ describe.only('Serie: Controller', () => {
       }
     };
 
+    const mockSerie = {
+      title: 'Brookly Nine-Nine',
+      seasons: {
+        data: [
+          {
+            episodes: [{}]
+          }
+        ],
+        id: function() {
+          return this.data[0];
+        }
+      }
+    };
+
     let modelStub;
 
     beforeEach(() => {
-      modelStub = sinon.stub(Serie, 'findOneAndUpdate').resolves(req2.body);
+      modelStub = sinon.stub(Serie, 'findOneAndUpdate').resolves(mockSerie);
     });
 
     afterEach(() => {
@@ -170,7 +184,7 @@ describe.only('Serie: Controller', () => {
     });
 
     it('should return the object', () => {
-      expectedResult = { ...req2.body };
+      expectedResult = { ...mockSerie };
       return SerieController.appendEpisode(req2, res, next).then(() => {
         expect(res.json).to.have.been.calledWith(expectedResult);
       });
@@ -234,7 +248,7 @@ describe.only('Serie: Controller', () => {
     let modelStub;
 
     beforeEach(() => {
-      modelStub = sinon.stub(Serie, 'findById').resolves();
+      modelStub = sinon.stub(Serie, 'findById').resolves({});
     });
 
     afterEach(() => {
@@ -557,21 +571,27 @@ describe.only('Serie: Controller', () => {
         expect(modelStub).to.have.been.calledWith({
           _id: req.params.serie,
           'seasons._id': req.params.season,
-          'seasons.$.episodes._id': req.params.episode
+          'seasons.episodes._id': req.params.episode
         });
       });
     });
 
     it('should call model with req.body', () => {
+      const payload = getPartialSubdocumentUpdatePayload(
+        'seasons.$[season].episodes',
+        req.body
+      );
+
       return SerieController.updateEpisode(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(
           {
             _id: req.params.serie,
             'seasons._id': req.params.season,
-            'seasons.$.episodes._id': req.params.episode
+            'seasons.episodes._id': req.params.episode
           },
-          req.body,
+          payload,
           {
+            arrayFilters: [{ 'season._id': req.params.season }],
             new: true
           }
         );
@@ -664,7 +684,7 @@ describe.only('Serie: Controller', () => {
       return SerieController.destroySeason(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(
           { _id: req.params.serie, 'seasons._id': req.params.season },
-          { $pull: { 'seasons.$': { _id: req.params.season } } },
+          { $pull: { seasons: { _id: req.params.season } } },
           { new: true }
         );
       });

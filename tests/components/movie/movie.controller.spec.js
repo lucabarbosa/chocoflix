@@ -6,6 +6,7 @@ import Movie from '../../../src/components/movie/movie.model';
 import MovieController from '../../../src/components/movie/movie.controller';
 
 import ApiError from '../../../src/helpers/ApiError';
+import getPartialSubdocumentUpdatePayload from '../../../src/utils/getPartialSubdocumentUpdatePayload';
 
 chai.use(sinonChai);
 
@@ -361,17 +362,12 @@ describe('Movie: Controller', () => {
     });
 
     it('should call model with req.body', () => {
-      const payload = req.body;
-      const set = {};
-
-      for (let prop in payload) {
-        set['saga.$.' + prop] = payload[prop];
-      }
+      const payload = getPartialSubdocumentUpdatePayload('saga', req.body);
 
       return MovieController.updateOnSaga(req, res, next).then(() => {
         expect(modelStub).to.have.been.calledWith(
           { _id: req.params.id, 'saga._id': req.params.movie },
-          { $set: set },
+          payload,
           { new: true }
         );
       });
