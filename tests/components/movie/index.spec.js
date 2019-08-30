@@ -57,6 +57,16 @@ describe('Movies: Router', () => {
           done(err);
         });
     });
+
+    it('should return 400 if body is invalid', done => {
+      request
+        .post(BASE_URL)
+        .send({})
+        .end((err, res) => {
+          expect(res).to.have.status(400);
+          done(err);
+        });
+    });
   });
 
   let defaultSagaId = '';
@@ -87,6 +97,16 @@ describe('Movies: Router', () => {
           expect(res).to.have.status(201);
           expect(res.body).to.be.an('Object');
           expect(res.body).to.be.eql(expectedMovie);
+          done(err);
+        });
+    });
+
+    it('should return 400 if body is invalid', done => {
+      request
+        .post(`${BASE_URL}/${defaultId}`)
+        .send({})
+        .end((err, res) => {
+          expect(res).to.have.status(400);
           done(err);
         });
     });
