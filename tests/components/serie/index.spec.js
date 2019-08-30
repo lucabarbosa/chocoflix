@@ -8,7 +8,7 @@ import deepMerge from '../../../src/utils/deepMerge';
 
 chai.use(chaiHttp);
 
-describe.only('Serie: Router', () => {
+describe('Serie: Router', () => {
   const BASE_URL = '/series';
 
   let server;

@@ -84,6 +84,28 @@ SerieController.getSeason = (req, res, next) => {
     .catch(err => next(err));
 };
 
+SerieController.getEpisode = (req, res, next) => {
+  const { serie, season, episode } = req.params;
+
+  return Serie.findOne({
+    _id: serie,
+    'seasons._id': season,
+    'seasons.episodes._id': episode
+  })
+    .then(serieFromDb => {
+      if (!serieFromDb) throw new ApiError(404, 'Serie');
+
+      const episodeOfSerie = serieFromDb.seasons
+        .id(season)
+        .episodes.id(episode);
+
+      if (episodeOfSerie) return res.status(200).json(episodeOfSerie);
+
+      throw new ApiError(404, 'Episode');
+    })
+    .catch(err => next(err));
+};
+
 SerieController.update = (req, res, next) => {
   const { serie } = req.params;
   const payload = req.body;

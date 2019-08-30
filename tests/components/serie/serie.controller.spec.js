@@ -10,7 +10,7 @@ import ApiError from '../../../src/helpers/ApiError';
 
 chai.use(sinonChai);
 
-describe('Serie: Controller', () => {
+describe.only('Serie: Controller', () => {
   // Express Params
   const req = {
     body: {
@@ -322,6 +322,85 @@ describe('Serie: Controller', () => {
     it('should call next with error when an error occurs', () => {
       modelStub.rejects(error);
       return SerieController.getSeason(req, res, next).then(() => {
+        expect(next).to.have.been.calledWith(error);
+      });
+    });
+  });
+
+  describe('getEpisode() season', () => {
+    let modelStub;
+
+    beforeEach(() => {
+      expectedResult = {
+        title: 'Harry Potter',
+        categories: [],
+        seasons: {
+          data: [
+            {
+              episodes: {
+                data: [
+                  {
+                    title: 'Pilot',
+                    description:
+                      '"Pilot" is the first episode of the first season of the American television police sitcom series Brooklyn Nine-Nine.',
+                    filePath: '~/series/brookly-99/season1/pilot.mp4',
+                    posters: ['~/series/brookly-99/season1/pilot.png'],
+                    duration: 1000,
+                    languages: ['en-US'],
+                    subtitles: [
+                      {
+                        language: 'pt-BR',
+                        filePath: '~/series/brookly-99/season1/pilot.pt-br.srt'
+                      }
+                    ]
+                  }
+                ],
+                id: function(episode) {
+                  return this.data[0];
+                }
+              }
+            }
+          ],
+          id: function(season) {
+            return this.data[0];
+          }
+        }
+      };
+
+      modelStub = sinon.stub(Serie, 'findOne').resolves(expectedResult);
+    });
+
+    afterEach(() => {
+      modelStub.restore();
+    });
+
+    it('should call model with req.params.episode', () => {
+      return SerieController.getEpisode(req, res, next).then(() => {
+        expect(modelStub).to.have.been.calledWith({
+          _id: req.params.serie,
+          'seasons._id': req.params.season,
+          'seasons.episodes._id': req.params.episode
+        });
+      });
+    });
+
+    it('should return an episode', () => {
+      return SerieController.getEpisode(req, res, next).then(() => {
+        expect(res.json).to.have.been.calledWith(
+          expectedResult.seasons.data[0].episodes.data[0]
+        );
+      });
+    });
+
+    it('should return 200 when no error', () => {
+      return SerieController.getEpisode(req, res, next).then(() => {
+        expect(res.status).to.have.been.calledWith(200);
+      });
+    });
+
+    it('should call next with error when an error occurs', () => {
+      modelStub.rejects(error);
+      return SerieController.getEpisode(req, res, next).then(() => {
         expect(next).to.have.been.calledWith(error);
       });
     });
