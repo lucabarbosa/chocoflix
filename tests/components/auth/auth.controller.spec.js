@@ -120,7 +120,7 @@ describe('Auth: Controller', () => {
       bcryptStub.resolves(true);
 
       return AuthController.login(req, res, next).then(() => {
-        expect(res.json).to.have.been.calledWith(token);
+        expect(res.json).to.have.been.calledWith({ token });
         expect(res.status).to.have.been.calledWith(200);
       });
     });

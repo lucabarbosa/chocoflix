@@ -28,7 +28,7 @@ AuthController.login = (req, res, next) => {
 
       throw new ApiError(401, 'User', 'Invalid Password.');
     })
-    .then(jwt => res.status(200).json(jwt))
+    .then(jwt => res.status(200).json({ token: jwt }))
     .catch(err => next(err));
 };
 
